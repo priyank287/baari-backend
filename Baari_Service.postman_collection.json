@@ -1,0 +1,112 @@
+{
+  "info": {
+    "name": "Baari Service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api", "auth", "register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Super Admin\",\n  \"email\": \"admin@baari.com\",\n  \"password\": \"admin123\",\n  \"role\": \"SUPER_ADMIN\",\n  \"hospitalId\": null\n}"
+            }
+          }
+        },
+        {
+          "name": "Register Hospital Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api", "auth", "register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hospital Admin\",\n  \"email\": \"hospitaladmin@baari.com\",\n  \"password\": \"admin123\",\n  \"role\": \"HOSPITAL_ADMIN\",\n  \"hospitalId\": \"<paste-hospital-uuid-here>\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register Doctor",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api", "auth", "register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Smith\",\n  \"email\": \"doctor@baari.com\",\n  \"password\": \"doctor123\",\n  \"role\": \"DOCTOR\",\n  \"hospitalId\": \"<paste-hospital-uuid-here>\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register Receptionist",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api", "auth", "register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Receptionist\",\n  \"email\": \"receptionist@baari.com\",\n  \"password\": \"recep123\",\n  \"role\": \"RECEPTIONIST\",\n  \"hospitalId\": \"<paste-hospital-uuid-here>\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('token', json.token);",
+                  "    console.log('Token saved:', json.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api", "auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@baari.com\",\n  \"password\": \"admin123\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/actuator/health", "host": ["{{base_url}}"], "path": ["actuator", "health"] }
+          }
+        }
+      ]
+    }
+  ]
+}
