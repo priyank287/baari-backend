@@ -3,28 +3,26 @@
     "name": "Baari Service",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
   "variable": [
-    {
-      "key": "base_url",
-      "value": "http://localhost:8080",
-      "type": "string"
-    },
-    {
-      "key": "token",
-      "value": "",
-      "type": "string"
-    }
+    { "key": "base_url", "value": "http://localhost:8080", "type": "string" },
+    { "key": "token",    "value": "",                      "type": "string" }
   ],
   "item": [
+
     {
       "name": "Auth",
       "item": [
         {
-          "name": "Register User",
+          "name": "Register Super Admin",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api", "auth", "register"] },
+            "url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api","auth","register"] },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Super Admin\",\n  \"email\": \"admin@baari.com\",\n  \"password\": \"admin123\",\n  \"role\": \"SUPER_ADMIN\",\n  \"hospitalId\": null\n}"
@@ -34,36 +32,13 @@
         {
           "name": "Register Hospital Admin",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api", "auth", "register"] },
+            "url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api","auth","register"] },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Hospital Admin\",\n  \"email\": \"hospitaladmin@baari.com\",\n  \"password\": \"admin123\",\n  \"role\": \"HOSPITAL_ADMIN\",\n  \"hospitalId\": \"<paste-hospital-uuid-here>\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Register Doctor",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api", "auth", "register"] },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Dr. Smith\",\n  \"email\": \"doctor@baari.com\",\n  \"password\": \"doctor123\",\n  \"role\": \"DOCTOR\",\n  \"hospitalId\": \"<paste-hospital-uuid-here>\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Register Receptionist",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api", "auth", "register"] },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Receptionist\",\n  \"email\": \"receptionist@baari.com\",\n  \"password\": \"recep123\",\n  \"role\": \"RECEPTIONIST\",\n  \"hospitalId\": \"<paste-hospital-uuid-here>\"\n}"
+              "raw": "{\n  \"name\": \"Hospital Admin\",\n  \"email\": \"hospitaladmin@baari.com\",\n  \"password\": \"admin123\",\n  \"role\": \"HOSPITAL_ADMIN\",\n  \"hospitalId\": \"<hospital-uuid>\"\n}"
             }
           }
         },
@@ -85,9 +60,10 @@
             }
           ],
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api", "auth", "login"] },
+            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api","auth","login"] },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"admin@baari.com\",\n  \"password\": \"admin123\"\n}"
@@ -96,17 +72,359 @@
         }
       ]
     },
+
+    {
+      "name": "Hospitals",
+      "item": [
+        {
+          "name": "Create Hospital",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/hospitals", "host": ["{{base_url}}"], "path": ["api","hospitals"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"City General Hospital\",\n  \"address\": \"123 Main Street, Mumbai\",\n  \"phone\": \"9876543210\",\n  \"whatsappSenderId\": null\n}"
+            }
+          }
+        },
+        {
+          "name": "List All Hospitals",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/hospitals", "host": ["{{base_url}}"], "path": ["api","hospitals"] }
+          }
+        },
+        {
+          "name": "Get Hospital by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/hospitals/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api","hospitals",":id"],
+              "variable": [{ "key": "id", "value": "<hospital-uuid>" }]
+            }
+          }
+        },
+        {
+          "name": "Regenerate Display Token",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{base_url}}/api/hospitals/:id/display-token/regenerate",
+              "host": ["{{base_url}}"],
+              "path": ["api","hospitals",":id","display-token","regenerate"],
+              "variable": [{ "key": "id", "value": "<hospital-uuid>" }]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Departments",
+      "item": [
+        {
+          "name": "Create Department",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/departments", "host": ["{{base_url}}"], "path": ["api","departments"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cardiology\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Active Departments",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/departments", "host": ["{{base_url}}"], "path": ["api","departments"] }
+          }
+        },
+        {
+          "name": "Delete Department (Soft)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/departments/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api","departments",":id"],
+              "variable": [{ "key": "id", "value": "<department-uuid>" }]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Doctors",
+      "item": [
+        {
+          "name": "Create Doctor",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/doctors", "host": ["{{base_url}}"], "path": ["api","doctors"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Priya Sharma\",\n  \"specialization\": \"Cardiologist\",\n  \"departmentId\": \"<department-uuid>\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Doctors",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/doctors", "host": ["{{base_url}}"], "path": ["api","doctors"] }
+          }
+        },
+        {
+          "name": "Toggle Availability",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{base_url}}/api/doctors/:id/availability",
+              "host": ["{{base_url}}"],
+              "path": ["api","doctors",":id","availability"],
+              "variable": [{ "key": "id", "value": "<doctor-uuid>" }]
+            }
+          }
+        },
+        {
+          "name": "Toggle Queue Permission",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{base_url}}/api/doctors/:id/queue-permission",
+              "host": ["{{base_url}}"],
+              "path": ["api","doctors",":id","queue-permission"],
+              "variable": [{ "key": "id", "value": "<doctor-uuid>" }]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Staff",
+      "item": [
+        {
+          "name": "Create Staff (Receptionist)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/staff", "host": ["{{base_url}}"], "path": ["api","staff"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Anita Reception\",\n  \"email\": \"anita@hospital.com\",\n  \"password\": \"pass1234\",\n  \"role\": \"RECEPTIONIST\",\n  \"doctorId\": null\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Staff (Doctor User)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/staff", "host": ["{{base_url}}"], "path": ["api","staff"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Priya Login\",\n  \"email\": \"drpriya@hospital.com\",\n  \"password\": \"pass1234\",\n  \"role\": \"DOCTOR\",\n  \"doctorId\": \"<doctor-uuid>\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Staff",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/staff", "host": ["{{base_url}}"], "path": ["api","staff"] }
+          }
+        },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/staff/me", "host": ["{{base_url}}"], "path": ["api","staff","me"] }
+          }
+        },
+        {
+          "name": "Deactivate Staff",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{base_url}}/api/staff/:id/deactivate",
+              "host": ["{{base_url}}"],
+              "path": ["api","staff",":id","deactivate"],
+              "variable": [{ "key": "id", "value": "<staff-uuid>" }]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Sessions",
+      "item": [
+        {
+          "name": "Open Session",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/sessions", "host": ["{{base_url}}"], "path": ["api","sessions"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"doctorId\": \"<doctor-uuid>\",\n  \"departmentId\": \"<department-uuid>\",\n  \"label\": \"MORNING\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Active Session for Doctor",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/sessions/active?doctorId=<doctor-uuid>",
+              "host": ["{{base_url}}"],
+              "path": ["api","sessions","active"],
+              "query": [{ "key": "doctorId", "value": "<doctor-uuid>" }]
+            }
+          }
+        },
+        {
+          "name": "Close Session",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{base_url}}/api/sessions/:id/close",
+              "host": ["{{base_url}}"],
+              "path": ["api","sessions",":id","close"],
+              "variable": [{ "key": "id", "value": "<session-uuid>" }]
+            }
+          }
+        },
+        {
+          "name": "List Sessions by Doctor & Date",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/sessions?doctorId=<doctor-uuid>&date=2025-04-10",
+              "host": ["{{base_url}}"],
+              "path": ["api","sessions"],
+              "query": [
+                { "key": "doctorId", "value": "<doctor-uuid>" },
+                { "key": "date",     "value": "2025-04-10" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Queue",
+      "item": [
+        {
+          "name": "Add Patient to Queue",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/queue/add", "host": ["{{base_url}}"], "path": ["api","queue","add"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"<session-uuid>\",\n  \"patientName\": \"Rahul Verma\",\n  \"mobileNumber\": \"9876543210\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Queue for Session",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/queue?sessionId=<session-uuid>",
+              "host": ["{{base_url}}"],
+              "path": ["api","queue"],
+              "query": [{ "key": "sessionId", "value": "<session-uuid>" }]
+            }
+          }
+        },
+        {
+          "name": "Call Entry",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{base_url}}/api/queue/:id/call",
+              "host": ["{{base_url}}"],
+              "path": ["api","queue",":id","call"],
+              "variable": [{ "key": "id", "value": "<queue-entry-uuid>" }]
+            }
+          }
+        },
+        {
+          "name": "Mark Done",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{base_url}}/api/queue/:id/done",
+              "host": ["{{base_url}}"],
+              "path": ["api","queue",":id","done"],
+              "variable": [{ "key": "id", "value": "<queue-entry-uuid>" }]
+            }
+          }
+        },
+        {
+          "name": "Mark Skipped",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{base_url}}/api/queue/:id/skip",
+              "host": ["{{base_url}}"],
+              "path": ["api","queue",":id","skip"],
+              "variable": [{ "key": "id", "value": "<queue-entry-uuid>" }]
+            }
+          }
+        },
+        {
+          "name": "Mark No-Show",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{base_url}}/api/queue/:id/no-show",
+              "host": ["{{base_url}}"],
+              "path": ["api","queue",":id","no-show"],
+              "variable": [{ "key": "id", "value": "<queue-entry-uuid>" }]
+            }
+          }
+        },
+        {
+          "name": "Display Board (Public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/queue/display?token=<display-token>",
+              "host": ["{{base_url}}"],
+              "path": ["api","queue","display"],
+              "query": [{ "key": "token", "value": "<display-token>" }]
+            }
+          }
+        }
+      ]
+    },
+
     {
       "name": "Health",
       "item": [
         {
           "name": "Health Check",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "GET",
-            "url": { "raw": "{{base_url}}/actuator/health", "host": ["{{base_url}}"], "path": ["actuator", "health"] }
+            "url": { "raw": "{{base_url}}/actuator/health", "host": ["{{base_url}}"], "path": ["actuator","health"] }
           }
         }
       ]
     }
+
   ]
 }

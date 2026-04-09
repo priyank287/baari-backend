@@ -28,6 +28,9 @@ jwt:
   secret: ${JWT_SECRET:baari-super-secret-key-must-be-at-least-256-bits-long}
   expiration-ms: ${JWT_EXPIRATION_MS:86400000}  # 24 hours
 
+fast2sms:
+  api-key: ${FAST2SMS_API_KEY:}
+
 management:
   endpoints:
     web:

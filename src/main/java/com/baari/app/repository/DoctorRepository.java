@@ -9,4 +9,8 @@ import java.util.UUID;
 public interface DoctorRepository extends JpaRepository<Doctor, UUID> {
 
     List<Doctor> findAllByHospitalIdAndIsAvailableTrue(UUID hospitalId);
+
+    List<Doctor> findAllByHospitalId(UUID hospitalId);
+
+    long countByHospitalId(UUID hospitalId);
 }

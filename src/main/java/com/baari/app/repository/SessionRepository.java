@@ -11,4 +11,6 @@ import java.util.UUID;
 public interface SessionRepository extends JpaRepository<Session, UUID> {
 
     List<Session> findByDoctorIdAndSessionDateAndStatus(UUID doctorId, LocalDate date, SessionStatus status);
+
+    List<Session> findByDoctorIdAndSessionDate(UUID doctorId, LocalDate date);
 }
