@@ -38,12 +38,18 @@ public class HospitalService {
 
     @Transactional
     public HospitalDto createHospital(HospitalCreateRequest request) {
+        PlanType plan = PlanType.BASIC;
+        if (request.planType() != null) {
+            try { plan = PlanType.valueOf(request.planType().toUpperCase()); }
+            catch (IllegalArgumentException ignored) {}
+        }
+
         Hospital hospital = new Hospital();
         hospital.setName(request.name());
         hospital.setAddress(request.address());
         hospital.setPhone(request.phone());
         hospital.setWhatsappSenderId(request.whatsappSenderId());
-        hospital.setPlanType(PlanType.BASIC);
+        hospital.setPlanType(plan);
         hospital.setDisplayToken(generateUniqueToken());
         hospital.setDisplayTokenActive(true);
         hospital.setDisplayTokenGeneratedAt(LocalDateTime.now());
@@ -52,12 +58,20 @@ public class HospitalService {
 
         Subscription subscription = new Subscription();
         subscription.setHospital(hospital);
-        subscription.setPlanType(PlanType.BASIC);
+        subscription.setPlanType(plan);
         subscription.setStatus(SubscriptionStatus.TRIAL);
         subscription.setStartDate(LocalDate.now());
+        applyPlanLimits(subscription, plan);
         subscriptionRepository.save(subscription);
 
         return toDto(hospital);
+    }
+
+    private void applyPlanLimits(Subscription sub, PlanType plan) {
+        switch (plan) {
+            case PRO -> { sub.setMaxDepartments(10); sub.setMaxDoctors(20); sub.setMaxStaffUsers(20); }
+            default  -> { sub.setMaxDepartments(1);  sub.setMaxDoctors(3);  sub.setMaxStaffUsers(2); }
+        }
     }
 
     public List<HospitalDto> getAllHospitals() {

@@ -2,7 +2,6 @@ package com.baari.app.service;
 
 import com.baari.app.dto.QueueAddRequest;
 import com.baari.app.dto.QueueDisplayDto;
-import com.baari.app.dto.QueueDisplayDto.DisplayEntry;
 import com.baari.app.dto.QueueEntryDto;
 import com.baari.app.repository.HospitalRepository;
 import com.baari.app.repository.QueueEntryRepository;
@@ -67,6 +66,7 @@ public class QueueService {
         entry.setPatientName(request.patientName());
         entry.setMobileNumber(request.mobileNumber());
         entry.setTokenNumber(nextToken);
+        entry.setSortKey((long) nextToken * 1000);
         entry.setQueueDate(LocalDate.now());
 
         QueueEntry saved = queueEntryRepository.save(entry);
@@ -85,7 +85,7 @@ public class QueueService {
             throw new AccessDeniedException("Session does not belong to your hospital");
         }
 
-        return queueEntryRepository.findAllBySessionIdOrderByTokenNumberAsc(sessionId)
+        return queueEntryRepository.findAllBySessionIdOrderBySortKeyAsc(sessionId)
                 .stream()
                 .map(this::toDto)
                 .toList();
@@ -102,13 +102,19 @@ public class QueueService {
             }
         }
 
-        if (entry.getStatus() != QueueStatus.WAITING) {
-            throw new IllegalStateException("Only WAITING entries can be called");
+        if (entry.getStatus() != QueueStatus.WAITING && entry.getStatus() != QueueStatus.CALLED) {
+            throw new IllegalStateException("Only WAITING or CALLED entries can be called");
+        }
+
+        // Re-call: already CALLED — just broadcast again for TV display, no state change needed
+        if (entry.getStatus() == QueueStatus.CALLED) {
+            queueWebSocketService.broadcastQueueUpdate(entry.getSession().getId());
+            return toDto(entry);
         }
 
         // Capture position-1 check before status changes
         List<QueueEntry> waitingBefore = queueEntryRepository
-                .findAllBySessionIdAndStatusOrderByTokenNumberAsc(entry.getSession().getId(), QueueStatus.WAITING);
+                .findAllBySessionIdAndStatusOrderBySortKeyAsc(entry.getSession().getId(), QueueStatus.WAITING);
         boolean wasFirst = !waitingBefore.isEmpty() && waitingBefore.get(0).getId().equals(id);
 
         LocalDateTime now = LocalDateTime.now();
@@ -124,7 +130,7 @@ public class QueueService {
         // Notify the patient who is now position 1
         if (wasFirst) {
             List<QueueEntry> waitingAfter = queueEntryRepository
-                    .findAllBySessionIdAndStatusOrderByTokenNumberAsc(saved.getSession().getId(), QueueStatus.WAITING);
+                    .findAllBySessionIdAndStatusOrderBySortKeyAsc(saved.getSession().getId(), QueueStatus.WAITING);
             if (!waitingAfter.isEmpty()) {
                 smsService.sendYouAreNextSms(waitingAfter.get(0));
             }
@@ -173,6 +179,57 @@ public class QueueService {
         return toDto(saved);
     }
 
+    @Transactional
+    public QueueEntryDto requeueEntry(UUID id, Authentication auth) {
+        StaffUser caller = loadUser(auth);
+        QueueEntry entry = requireSameHospitalEntry(id, caller);
+
+        if (entry.getStatus() != QueueStatus.CALLED) {
+            throw new IllegalStateException("Only CALLED entries can be requeued");
+        }
+
+        List<QueueEntry> waiting = queueEntryRepository
+                .findAllBySessionIdAndStatusOrderBySortKeyAsc(entry.getSession().getId(), QueueStatus.WAITING);
+
+        long newSortKey;
+        if (entry.getRequeueCount() == 0 && waiting.size() >= 3) {
+            // Insert between 2nd and 3rd waiting (position 3)
+            long k1 = waiting.get(1).getSortKey();
+            long k2 = waiting.get(2).getSortKey();
+            newSortKey = (k1 + k2) / 2;
+            if (newSortKey <= k1) newSortKey = k1 + 1;
+        } else {
+            // Place at end
+            newSortKey = waiting.isEmpty()
+                    ? (long) entry.getTokenNumber() * 1000
+                    : waiting.get(waiting.size() - 1).getSortKey() + 1000L;
+        }
+
+        entry.setStatus(QueueStatus.WAITING);
+        entry.setCalledAt(null);
+        entry.setWaitTimeMinutes(null);
+        entry.setRequeueCount(entry.getRequeueCount() + 1);
+        entry.setSortKey(newSortKey);
+
+        QueueEntry saved = queueEntryRepository.save(entry);
+        queueWebSocketService.broadcastQueueUpdate(saved.getSession().getId());
+        smsService.sendRequeueSms(saved);
+        return toDto(saved);
+    }
+
+    @Transactional
+    public QueueEntryDto sendReminder(UUID id, Authentication auth) {
+        StaffUser caller = loadUser(auth);
+        QueueEntry entry = requireSameHospitalEntry(id, caller);
+
+        if (entry.getStatus() != QueueStatus.CALLED) {
+            throw new IllegalStateException("Only CALLED entries can receive a reminder");
+        }
+
+        smsService.sendReminderSms(entry);
+        return toDto(entry);
+    }
+
     public QueueDisplayDto getDisplay(String displayToken) {
         Hospital hospital = hospitalRepository.findByDisplayToken(displayToken)
                 .orElseThrow(() -> new NoSuchElementException("Invalid display token"));
@@ -181,22 +238,33 @@ public class QueueService {
             throw new AccessDeniedException("Display token is inactive");
         }
 
-        List<DisplayEntry> called = queueEntryRepository
-                .findAllByHospitalIdAndQueueDateAndStatusOrderByTokenNumberAsc(
-                        hospital.getId(), LocalDate.now(), QueueStatus.CALLED)
+        List<QueueDisplayDto.SessionRow> rows = sessionRepository
+                .findByHospitalIdAndSessionDateAndStatus(hospital.getId(), LocalDate.now(), SessionStatus.OPEN)
                 .stream()
-                .map(e -> new DisplayEntry(e.getTokenNumber(), e.getPatientName()))
+                .map(session -> {
+                    List<QueueEntry> called = queueEntryRepository
+                            .findAllBySessionIdAndStatusOrderBySortKeyAsc(session.getId(), QueueStatus.CALLED);
+                    List<QueueEntry> waiting = queueEntryRepository
+                            .findAllBySessionIdAndStatusOrderBySortKeyAsc(session.getId(), QueueStatus.WAITING);
+
+                    QueueDisplayDto.DisplayEntry inConsultation = called.isEmpty() ? null
+                            : new QueueDisplayDto.DisplayEntry(called.get(0).getTokenNumber(), called.get(0).getPatientName());
+
+                    List<QueueDisplayDto.DisplayEntry> upNext = waiting.stream()
+                            .limit(2)
+                            .map(e -> new QueueDisplayDto.DisplayEntry(e.getTokenNumber(), e.getPatientName()))
+                            .toList();
+
+                    return new QueueDisplayDto.SessionRow(
+                            session.getDoctor().getName(),
+                            session.getDepartment().getName(),
+                            inConsultation,
+                            upNext
+                    );
+                })
                 .toList();
 
-        List<DisplayEntry> next = queueEntryRepository
-                .findAllByHospitalIdAndQueueDateAndStatusOrderByTokenNumberAsc(
-                        hospital.getId(), LocalDate.now(), QueueStatus.WAITING)
-                .stream()
-                .limit(3)
-                .map(e -> new DisplayEntry(e.getTokenNumber(), e.getPatientName()))
-                .toList();
-
-        return new QueueDisplayDto(called, next);
+        return new QueueDisplayDto(hospital.getName(), rows);
     }
 
     // --- helpers ---
@@ -237,7 +305,8 @@ public class QueueService {
                 e.getCompletedAt(),
                 e.getSession().getId(),
                 e.getDoctor().getId(),
-                e.getDepartment().getId()
+                e.getDepartment().getId(),
+                e.getRequeueCount()
         );
     }
 }

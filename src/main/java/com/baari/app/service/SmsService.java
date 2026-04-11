@@ -38,26 +38,54 @@ public class SmsService {
         long position = queueEntryRepository.countBySessionIdAndStatus(
                 entry.getSession().getId(), QueueStatus.WAITING);
 
+        Double avgConsultation = queueEntryRepository.avgConsultationMinutesByDoctor(entry.getDoctor().getId());
+        long estWait = Math.round((avgConsultation != null ? avgConsultation : 10.0) * position);
+
         String message = String.format(
-                "Token #%d confirmed for Dr.%s. You are #%d in queue. ~Baari",
+                "Token #%d confirmed!\n\nDoctor: Dr. %s\nPosition: #%d in queue\nEst. wait: ~%d mins\n\n- Baari",
                 entry.getTokenNumber(),
                 entry.getDoctor().getName(),
-                position);
+                position,
+                estWait);
 
         send(entry, message, MessageType.REGISTERED);
     }
 
     public void sendYouAreNextSms(QueueEntry entry) {
+        boolean alreadySent = notificationLogRepository.existsByQueueEntryAndMessageTypeAndSentAtAfter(
+                entry, MessageType.YOU_ARE_NEXT, LocalDateTime.now().minusSeconds(60));
+        if (alreadySent) {
+            log.info("YOU_ARE_NEXT SMS skipped for entry {} — already sent within 60s", entry.getId());
+            return;
+        }
+
         String message = String.format(
-                "You are next! Please proceed to Dr.%s cabin. ~Baari",
+                "Agli baari aapki!\n\nYou're next. Please proceed to\nDr. %s's cabin now.\n\n- Baari",
                 entry.getDoctor().getName());
 
         send(entry, message, MessageType.YOU_ARE_NEXT);
     }
 
+    public void sendReminderSms(QueueEntry entry) {
+        String message = String.format(
+                "Reminder: Aapki baari aa gayi!\n\nDr. %s is waiting for you.\nPlease proceed to the cabin now.\n\n- Baari",
+                entry.getDoctor().getName());
+
+        send(entry, message, MessageType.REMINDER);
+    }
+
+    public void sendRequeueSms(QueueEntry entry) {
+        String message = String.format(
+                "Token #%d update:\n\nYou've been rescheduled in the queue.\nDr. %s will call you again shortly.\n\n- Baari",
+                entry.getTokenNumber(),
+                entry.getDoctor().getName());
+
+        send(entry, message, MessageType.POSITION_UPDATE);
+    }
+
     public void sendNoShowSms(QueueEntry entry) {
         String message = String.format(
-                "Token #%d expired. Visit reception to re-register. ~Baari",
+                "Token #%d has expired.\n\nPlease visit the reception to\nre-register.\n\n- Baari",
                 entry.getTokenNumber());
 
         send(entry, message, MessageType.NO_SHOW_ALERT);
@@ -68,26 +96,30 @@ public class SmsService {
 
         try {
             String url = UriComponentsBuilder.fromUri(java.net.URI.create(FAST2SMS_URL))
+                    .queryParam("authorization", apiKey)
                     .queryParam("route", "q")
                     .queryParam("message", message)
                     .queryParam("language", "english")
                     .queryParam("numbers", entry.getMobileNumber())
                     .toUriString();
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("authorization", apiKey);
+            log.info("SMS sending [{}] to {} | URL (masked): {}",
+                    messageType, entry.getMobileNumber(),
+                    url.replaceAll("authorization=[^&]+", "authorization=***"));
 
             ResponseEntity<String> response = restTemplate.exchange(
-                    url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+                    url, HttpMethod.GET, new HttpEntity<>(new HttpHeaders()), String.class);
+
+            log.info("SMS response [{}] | HTTP {} | Body: {}", messageType, response.getStatusCode(), response.getBody());
 
             if (response.getStatusCode().is2xxSuccessful()) {
                 status = DeliveryStatus.SENT;
                 log.info("SMS sent [{}] to {} for entry {}", messageType, entry.getMobileNumber(), entry.getId());
             } else {
-                log.warn("SMS failed [{}] — HTTP {}", messageType, response.getStatusCode());
+                log.warn("SMS failed [{}] — HTTP {} | Body: {}", messageType, response.getStatusCode(), response.getBody());
             }
         } catch (Exception e) {
-            log.error("SMS error [{}] for entry {}: {}", messageType, entry.getId(), e.getMessage());
+            log.error("SMS error [{}] for entry {}: {}", messageType, entry.getId(), e.getMessage(), e);
         }
 
         saveLog(entry, message, messageType, status);

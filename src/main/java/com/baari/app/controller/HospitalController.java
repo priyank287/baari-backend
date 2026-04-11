@@ -2,7 +2,10 @@ package com.baari.app.controller;
 
 import com.baari.app.dto.HospitalCreateRequest;
 import com.baari.app.dto.HospitalDto;
+import com.baari.app.dto.StaffCreateRequest;
+import com.baari.app.dto.StaffUserDto;
 import com.baari.app.service.HospitalService;
+import com.baari.app.service.StaffUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,6 +25,7 @@ import java.util.UUID;
 public class HospitalController {
 
     private final HospitalService hospitalService;
+    private final StaffUserService staffUserService;
 
     @PostMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
@@ -41,6 +45,19 @@ public class HospitalController {
             return ResponseEntity.ok(hospitalService.getHospital(id, auth));
         } catch (AccessDeniedException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/{id}/admin")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> createHospitalAdmin(@PathVariable UUID id,
+                                                 @Valid @RequestBody StaffCreateRequest request) {
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED).body(staffUserService.createHospitalAdmin(id, request));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e.getMessage());
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
         }

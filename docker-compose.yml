@@ -32,6 +32,7 @@ services:
       DB_USER: ${DB_USER:-baari}
       DB_PASSWORD: ${DB_PASSWORD:-baari_pass}
       DDL_AUTO: ${DDL_AUTO:-update}
+      FAST2SMS_API_KEY: ${FAST2SMS_API_KEY}
     depends_on:
       db:
         condition: service_healthy

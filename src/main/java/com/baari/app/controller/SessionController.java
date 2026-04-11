@@ -25,6 +25,12 @@ public class SessionController {
 
     private final SessionService sessionService;
 
+    @GetMapping("/open")
+    @PreAuthorize("hasAnyRole('HOSPITAL_ADMIN', 'RECEPTIONIST', 'DOCTOR')")
+    public ResponseEntity<List<SessionDto>> getOpenSessions(Authentication auth) {
+        return ResponseEntity.ok(sessionService.getOpenSessions(auth));
+    }
+
     @PostMapping
     @PreAuthorize("hasAnyRole('HOSPITAL_ADMIN', 'RECEPTIONIST')")
     public ResponseEntity<?> openSession(@Valid @RequestBody SessionCreateRequest request,
@@ -56,7 +62,7 @@ public class SessionController {
     }
 
     @PatchMapping("/{id}/close")
-    @PreAuthorize("hasAnyRole('HOSPITAL_ADMIN', 'RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('HOSPITAL_ADMIN', 'RECEPTIONIST', 'DOCTOR')")
     public ResponseEntity<?> closeSession(@PathVariable UUID id, Authentication auth) {
         try {
             return ResponseEntity.ok(sessionService.closeSession(id, auth));

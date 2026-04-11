@@ -6,5 +6,6 @@ public record HospitalCreateRequest(
         @NotBlank String name,
         String address,
         String phone,
-        String whatsappSenderId
+        String whatsappSenderId,
+        String planType
 ) {}

@@ -39,7 +39,11 @@ public class AuthService {
                 token,
                 user.getRole().name(),
                 user.getName(),
-                user.getHospital() != null ? user.getHospital().getId() : null
+                user.getHospital() != null ? user.getHospital().getId() : null,
+                user.getHospital() != null ? user.getHospital().getName() : null,
+                user.getHospital() != null && user.getHospital().getPlanType() != null
+                        ? user.getHospital().getPlanType().name() : null,
+                user.getDoctor() != null ? user.getDoctor().getId() : null
         );
     }
 }

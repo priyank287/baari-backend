@@ -69,4 +69,10 @@ public class QueueEntry {
 
     @Column(name = "queue_date", nullable = false)
     private LocalDate queueDate;
+
+    @Column(name = "requeue_count", nullable = false)
+    private int requeueCount = 0;
+
+    @Column(name = "sort_key", nullable = false)
+    private long sortKey;
 }

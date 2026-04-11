@@ -2,6 +2,10 @@ spring:
   application:
     name: baari-service
 
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:baari_db}
     username: ${DB_USER:baari}

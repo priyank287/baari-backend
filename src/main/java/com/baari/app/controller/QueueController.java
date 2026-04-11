@@ -98,6 +98,34 @@ public class QueueController {
         }
     }
 
+    @PatchMapping("/{id}/requeue")
+    @PreAuthorize("hasAnyRole('HOSPITAL_ADMIN', 'RECEPTIONIST')")
+    public ResponseEntity<?> requeueEntry(@PathVariable UUID id, Authentication auth) {
+        try {
+            return ResponseEntity.ok(queueService.requeueEntry(id, auth));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/{id}/remind")
+    @PreAuthorize("hasAnyRole('HOSPITAL_ADMIN', 'RECEPTIONIST')")
+    public ResponseEntity<?> sendReminder(@PathVariable UUID id, Authentication auth) {
+        try {
+            return ResponseEntity.ok(queueService.sendReminder(id, auth));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     // Public — no auth required (permitted in SecurityConfig)
     @GetMapping("/display")
     public ResponseEntity<?> getDisplay(@RequestParam String token) {

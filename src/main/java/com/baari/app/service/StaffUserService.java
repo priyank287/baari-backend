@@ -3,6 +3,7 @@ package com.baari.app.service;
 import com.baari.app.dto.StaffCreateRequest;
 import com.baari.app.dto.StaffUserDto;
 import com.baari.app.repository.DoctorRepository;
+import com.baari.app.repository.HospitalRepository;
 import com.baari.app.repository.StaffUserRepository;
 import com.baari.app.repository.SubscriptionRepository;
 import com.baari.service.entity.Doctor;
@@ -31,6 +32,7 @@ public class StaffUserService {
     private final StaffUserRepository staffUserRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final DoctorRepository doctorRepository;
+    private final HospitalRepository hospitalRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
@@ -74,6 +76,25 @@ public class StaffUserService {
             }
             user.setDoctor(doctor);
         }
+
+        return toDto(staffUserRepository.save(user));
+    }
+
+    @Transactional
+    public StaffUserDto createHospitalAdmin(UUID hospitalId, StaffCreateRequest request) {
+        Hospital hospital = hospitalRepository.findById(hospitalId)
+                .orElseThrow(() -> new NoSuchElementException("Hospital not found"));
+
+        if (staffUserRepository.findByEmail(request.email()).isPresent()) {
+            throw new IllegalStateException("Email already in use");
+        }
+
+        StaffUser user = new StaffUser();
+        user.setHospital(hospital);
+        user.setName(request.name());
+        user.setEmail(request.email());
+        user.setPasswordHash(passwordEncoder.encode(request.password()));
+        user.setRole(UserRole.HOSPITAL_ADMIN);
 
         return toDto(staffUserRepository.save(user));
     }

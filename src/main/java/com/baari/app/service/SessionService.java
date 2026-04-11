@@ -106,6 +106,15 @@ public class SessionService {
         return toDto(sessionRepository.save(session));
     }
 
+    public List<SessionDto> getOpenSessions(Authentication auth) {
+        Hospital hospital = requireHospital(loadUser(auth));
+        return sessionRepository
+                .findByHospitalIdAndSessionDateAndStatus(hospital.getId(), LocalDate.now(), SessionStatus.OPEN)
+                .stream()
+                .map(this::toDto)
+                .toList();
+    }
+
     public List<SessionDto> listSessions(UUID doctorId, LocalDate date, Authentication auth) {
         Hospital hospital = requireHospital(loadUser(auth));
 

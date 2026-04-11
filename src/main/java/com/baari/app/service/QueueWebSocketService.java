@@ -18,7 +18,7 @@ public class QueueWebSocketService {
 
     public void broadcastQueueUpdate(UUID sessionId) {
         List<QueueEntryDto> queue = queueEntryRepository
-                .findAllBySessionIdOrderByTokenNumberAsc(sessionId)
+                .findAllBySessionIdOrderBySortKeyAsc(sessionId)
                 .stream()
                 .map(e -> new QueueEntryDto(
                         e.getId(),
@@ -33,7 +33,8 @@ public class QueueWebSocketService {
                         e.getCompletedAt(),
                         e.getSession().getId(),
                         e.getDoctor().getId(),
-                        e.getDepartment().getId()
+                        e.getDepartment().getId(),
+                        e.getRequeueCount()
                 ))
                 .toList();
 

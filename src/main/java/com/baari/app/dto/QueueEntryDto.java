@@ -19,5 +19,6 @@ public record QueueEntryDto(
         LocalDateTime completedAt,
         UUID sessionId,
         UUID doctorId,
-        UUID departmentId
+        UUID departmentId,
+        int requeueCount
 ) {}
