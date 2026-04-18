@@ -1,5 +1,6 @@
 package com.baari.app.service;
 
+import com.baari.app.notification.NotificationChannel;
 import com.baari.app.repository.NotificationLogRepository;
 import com.baari.app.repository.QueueEntryRepository;
 import com.baari.service.entity.NotificationLog;
@@ -9,14 +10,7 @@ import com.baari.service.entity.enums.MessageType;
 import com.baari.service.entity.enums.QueueStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.LocalDateTime;
 
@@ -25,14 +19,9 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class SmsService {
 
-    private static final String FAST2SMS_URL = "https://www.fast2sms.com/dev/bulkV2";
-
-    private final RestTemplate restTemplate;
+    private final NotificationChannel notificationChannel;
     private final NotificationLogRepository notificationLogRepository;
     private final QueueEntryRepository queueEntryRepository;
-
-    @Value("${fast2sms.api-key}")
-    private String apiKey;
 
     public void sendRegistrationSms(QueueEntry entry) {
         long position = queueEntryRepository.countBySessionIdAndStatus(
@@ -55,7 +44,7 @@ public class SmsService {
         boolean alreadySent = notificationLogRepository.existsByQueueEntryAndMessageTypeAndSentAtAfter(
                 entry, MessageType.YOU_ARE_NEXT, LocalDateTime.now().minusSeconds(60));
         if (alreadySent) {
-            log.info("YOU_ARE_NEXT SMS skipped for entry {} — already sent within 60s", entry.getId());
+            log.info("YOU_ARE_NEXT notification skipped for entry {} — already sent within 60s", entry.getId());
             return;
         }
 
@@ -92,36 +81,8 @@ public class SmsService {
     }
 
     private void send(QueueEntry entry, String message, MessageType messageType) {
-        DeliveryStatus status = DeliveryStatus.FAILED;
-
-        try {
-            String url = UriComponentsBuilder.fromUri(java.net.URI.create(FAST2SMS_URL))
-                    .queryParam("authorization", apiKey)
-                    .queryParam("route", "q")
-                    .queryParam("message", message)
-                    .queryParam("language", "english")
-                    .queryParam("numbers", entry.getMobileNumber())
-                    .toUriString();
-
-            log.info("SMS sending [{}] to {} | URL (masked): {}",
-                    messageType, entry.getMobileNumber(),
-                    url.replaceAll("authorization=[^&]+", "authorization=***"));
-
-            ResponseEntity<String> response = restTemplate.exchange(
-                    url, HttpMethod.GET, new HttpEntity<>(new HttpHeaders()), String.class);
-
-            log.info("SMS response [{}] | HTTP {} | Body: {}", messageType, response.getStatusCode(), response.getBody());
-
-            if (response.getStatusCode().is2xxSuccessful()) {
-                status = DeliveryStatus.SENT;
-                log.info("SMS sent [{}] to {} for entry {}", messageType, entry.getMobileNumber(), entry.getId());
-            } else {
-                log.warn("SMS failed [{}] — HTTP {} | Body: {}", messageType, response.getStatusCode(), response.getBody());
-            }
-        } catch (Exception e) {
-            log.error("SMS error [{}] for entry {}: {}", messageType, entry.getId(), e.getMessage(), e);
-        }
-
+        boolean delivered = notificationChannel.send(entry.getMobileNumber(), message, messageType);
+        DeliveryStatus status = delivered ? DeliveryStatus.SENT : DeliveryStatus.FAILED;
         saveLog(entry, message, messageType, status);
     }
 

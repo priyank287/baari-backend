@@ -32,6 +32,27 @@ jwt:
   secret: ${JWT_SECRET:baari-super-secret-key-must-be-at-least-256-bits-long}
   expiration-ms: ${JWT_EXPIRATION_MS:86400000}  # 24 hours
 
+# ── Notification channel ──────────────────────────────────────────────────────
+# Toggle: notification.channel = fast2sms | interakt | wati
+notification:
+  channel: ${NOTIFICATION_CHANNEL:fast2sms}
+
+  fast2sms:
+    api-key: ${FAST2SMS_API_KEY:}
+
+  interakt:
+    api-key: ${INTERAKT_API_KEY:}
+    country-code: "91"
+    template-name: ${INTERAKT_TEMPLATE_NAME:baari_notification}
+    language-code: en
+
+  wati:
+    api-endpoint: ${WATI_API_ENDPOINT:}
+    api-token: ${WATI_API_TOKEN:}
+    template-name: ${WATI_TEMPLATE_NAME:baari_notification}
+    broadcast-name: ${WATI_BROADCAST_NAME:baari_queue}
+
+# kept for backward compat — same value as notification.fast2sms.api-key
 fast2sms:
   api-key: ${FAST2SMS_API_KEY:}
 

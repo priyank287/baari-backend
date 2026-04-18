@@ -32,7 +32,14 @@ services:
       DB_USER: ${DB_USER:-baari}
       DB_PASSWORD: ${DB_PASSWORD:-baari_pass}
       DDL_AUTO: ${DDL_AUTO:-update}
-      FAST2SMS_API_KEY: ${FAST2SMS_API_KEY}
+      NOTIFICATION_CHANNEL: ${NOTIFICATION_CHANNEL:-fast2sms}
+      FAST2SMS_API_KEY: ${FAST2SMS_API_KEY:-}
+      INTERAKT_API_KEY: ${INTERAKT_API_KEY:-}
+      INTERAKT_TEMPLATE_NAME: ${INTERAKT_TEMPLATE_NAME:-baari_notification}
+      WATI_API_ENDPOINT: ${WATI_API_ENDPOINT:-}
+      WATI_API_TOKEN: ${WATI_API_TOKEN:-}
+      WATI_TEMPLATE_NAME: ${WATI_TEMPLATE_NAME:-baari_notification}
+      WATI_BROADCAST_NAME: ${WATI_BROADCAST_NAME:-baari_queue}
     depends_on:
       db:
         condition: service_healthy
