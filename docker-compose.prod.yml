@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: baari-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-baari_db}
+      POSTGRES_USER: ${DB_USER:-baari}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-baari_pass}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-baari} -d ${DB_NAME:-baari_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    image: ${DOCKERHUB_USERNAME}/baari-backend:latest
+    container_name: baari-service
+    restart: unless-stopped
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-baari_db}
+      DB_USER: ${DB_USER:-baari}
+      DB_PASSWORD: ${DB_PASSWORD:-baari_pass}
+      DDL_AUTO: ${DDL_AUTO:-update}
+      NOTIFICATION_CHANNEL: ${NOTIFICATION_CHANNEL:-fast2sms}
+      FAST2SMS_API_KEY: ${FAST2SMS_API_KEY:-}
+      INTERAKT_API_KEY: ${INTERAKT_API_KEY:-}
+      INTERAKT_TEMPLATE_NAME: ${INTERAKT_TEMPLATE_NAME:-baari_notification}
+      WATI_API_ENDPOINT: ${WATI_API_ENDPOINT:-}
+      WATI_API_TOKEN: ${WATI_API_TOKEN:-}
+      WATI_TEMPLATE_NAME: ${WATI_TEMPLATE_NAME:-baari_notification}
+      WATI_BROADCAST_NAME: ${WATI_BROADCAST_NAME:-baari_queue}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
